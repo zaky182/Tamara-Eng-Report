@@ -606,7 +606,14 @@
 
   async function triggerPrintPDF(report) {
     if (!report) return;
-    await ReportPrinter.printPDF(report, state.logos);
+    showToast('Menyiapkan file PDF (A4)...');
+    try {
+      await ReportPrinter.printPDF(report, state.logos);
+      showToast('File PDF berhasil diunduh!');
+    } catch (err) {
+      console.error(err);
+      showToast('Gagal membuat PDF: ' + (err.message || 'Terjadi kesalahan'), true);
+    }
   }
 
   // ==================== ADMIN PANEL ====================

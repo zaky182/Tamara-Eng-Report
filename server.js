@@ -167,6 +167,7 @@ app.use(express.json({ limit: '25mb' }));
 app.use('/css', express.static(path.join(__dirname, 'css')));
 app.use('/js', express.static(path.join(__dirname, 'js')));
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
+app.use('/vendor', express.static(path.join(__dirname, 'node_modules/jspdf/dist'), { maxAge: '30d' }));
 app.use('/uploads', express.static(UPLOADS_DIR, { maxAge: '7d' }));
 
 function getToken(req) {
