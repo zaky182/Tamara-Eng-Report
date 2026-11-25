@@ -1,0 +1,15 @@
+{
+  "name": "tamara-eng-report",
+  "version": "1.0.0",
+  "description": "Engineering Dept . PT Harapan Mitra Lestari — Daily Survey Activity Report Web App",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}

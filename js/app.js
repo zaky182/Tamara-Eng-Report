@@ -1,5 +1,5 @@
 /**
- * Main Application Controller
+ * Main Application Controller (Server-Synced via REST API)
  * Engineering Dept . PT Harapan Mitra Lestari
  */
 (() => {
@@ -31,7 +31,6 @@
     editingUserId: null
   };
 
-  // Helper DOM
   const $ = (id) => document.getElementById(id);
 
   function escapeHtml(str) {
@@ -59,28 +58,25 @@
   }
 
   // ==================== DATA LOADING ====================
+  async function loadPublicLogos() {
+    try {
+      const res = await API.getPublicLogos();
+      if (res && res.logos) {
+        state.logos = res.logos;
+        applyLogosToUI();
+      }
+    } catch (_) {
+      // tetap pakai default logo
+    }
+  }
+
   async function loadAllData() {
-    state.users = await DB.getAll('users');
-
-    const ddList = await DB.getAll('dropdowns');
-    state.dropdowns = {};
-    ddList.forEach((d) => {
-      state.dropdowns[d.key] = Array.isArray(d.items) ? d.items : [];
-    });
-
-    const reports = await DB.getAll('reports');
-    // Urutkan terbaru di atas
-    state.reports = reports.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
-
-    // Load custom logos if any
-    const companyLogo = await DB.getOne('settings', 'logo_company');
-    const pdfLeftLogo = await DB.getOne('settings', 'logo_pdf_left');
-    const pdfRightLogo = await DB.getOne('settings', 'logo_pdf_right');
-
-    state.logos.company = (companyLogo && companyLogo.value) || 'assets/logo-hml.png';
-    state.logos.pdfLeft = (pdfLeftLogo && pdfLeftLogo.value) || 'assets/logo-dbk.jpeg';
-    state.logos.pdfRight = (pdfRightLogo && pdfRightLogo.value) || 'assets/logo-petrosea.jpeg';
-
+    const data = await API.bootstrap();
+    state.currentUser = data.user;
+    state.dropdowns = data.dropdowns || {};
+    state.reports = data.reports || [];
+    state.logos = data.logos || state.logos;
+    state.users = data.users || [];
     applyLogosToUI();
   }
 
@@ -92,22 +88,6 @@
   }
 
   // ==================== AUTHENTICATION ====================
-  function restoreSession() {
-    try {
-      const saved = sessionStorage.getItem('hml_eng_session');
-      if (!saved) return false;
-      const parsed = JSON.parse(saved);
-      const user = state.users.find((u) => u.id === parsed.id);
-      if (user) {
-        state.currentUser = user;
-        return true;
-      }
-    } catch (_) {
-      // ignore
-    }
-    return false;
-  }
-
   function showLoginView() {
     $('loginView').classList.remove('hidden');
     $('appShell').classList.add('hidden');
@@ -126,7 +106,6 @@
     badge.textContent = state.currentUser.role === 'admin' ? 'Admin' : 'User';
     badge.className = `role-badge ${state.currentUser.role === 'admin' ? 'role-admin' : 'role-user'}`;
 
-    // Tampilkan tab Admin Panel hanya untuk admin
     const adminTabBtn = $('navAdminBtn');
     if (state.currentUser.role === 'admin') {
       adminTabBtn.classList.remove('hidden');
@@ -141,27 +120,28 @@
     e.preventDefault();
     const username = $('loginUsername').value.trim();
     const password = $('loginPassword').value;
+    const submitBtn = e.target.querySelector('button[type="submit"]');
 
-    const user = state.users.find(
-      (u) => u.username.toLowerCase() === username.toLowerCase() && u.password === password
-    );
-
-    if (!user) {
-      $('loginError').textContent = 'Username atau password salah. Silakan coba lagi.';
+    submitBtn.disabled = true;
+    try {
+      await API.login(username, password);
+      await loadAllData();
+      $('loginError').classList.add('hidden');
+      showAppShell();
+      showToast(`Selamat datang, ${state.currentUser.fullName}!`);
+    } catch (err) {
+      $('loginError').textContent = err.message || 'Username atau password salah.';
       $('loginError').classList.remove('hidden');
-      return;
+    } finally {
+      submitBtn.disabled = false;
     }
-
-    state.currentUser = user;
-    sessionStorage.setItem('hml_eng_session', JSON.stringify({ id: user.id }));
-    $('loginError').classList.add('hidden');
-    showAppShell();
-    showToast(`Selamat datang, ${user.fullName}!`);
   }
 
-  function handleLogout() {
+  async function handleLogout() {
+    await API.logout();
     state.currentUser = null;
-    sessionStorage.removeItem('hml_eng_session');
+    state.reports = [];
+    state.users = [];
     showLoginView();
     showToast('Anda telah keluar dari sistem.');
   }
@@ -195,7 +175,6 @@
 
   // ==================== DASHBOARD ====================
   function renderDashboard() {
-    // Filter dropdown Area
     const filterArea = $('filterArea');
     const prevArea = filterArea.value;
     const areaItems = state.dropdowns.area || [];
@@ -204,7 +183,6 @@
       areaItems.map((a) => `<option value="${escapeHtml(a)}">${escapeHtml(a)}</option>`).join('');
     filterArea.value = prevArea;
 
-    // Stats
     const now = new Date();
     const currentMonthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     const reportsThisMonth = state.reports.filter((r) => (r.dateISO || '').startsWith(currentMonthPrefix)).length;
@@ -216,7 +194,6 @@
     $('statTotalPhotos').textContent = totalPhotos;
     $('statActiveAreas').textContent = uniqueAreas;
 
-    // Filtered list
     const query = ($('filterSearch').value || '').trim().toLowerCase();
     const areaFilter = filterArea.value;
     const dateFilter = $('filterDate').value;
@@ -461,7 +438,6 @@
 
     setDateDropdownValues(report.dateDay, report.dateMonth, report.dateYear);
 
-    // Pastikan opsi tetap muncul walau item sudah dihapus dari master
     if (report.area && ![...$('inputArea').options].some((o) => o.value === report.area)) {
       $('inputArea').add(new Option(report.area, report.area));
     }
@@ -497,14 +473,15 @@
 
     let successCount = 0;
     for (let i = 0; i < files.length; i++) {
-      progressEl.textContent = `Mengompres gambar ${i + 1} dari ${files.length} untuk kualitas cetak A4...`;
+      progressEl.textContent = `Mengompres & mengunggah gambar ${i + 1} dari ${files.length} (kualitas cetak A4)...`;
       try {
         const compressed = await ImageCompressor.compressFile(files[i]);
-        state.uploadedImages.push(compressed);
+        const uploaded = await API.uploadPhoto(compressed);
+        state.uploadedImages.push(uploaded);
         successCount++;
       } catch (err) {
         console.error(err);
-        showToast(`Gagal memproses ${files[i].name}`, true);
+        showToast(`Gagal memproses ${files[i].name}: ${err.message}`, true);
       }
     }
 
@@ -514,7 +491,7 @@
     renderPhotoPreviews();
 
     if (successCount > 0) {
-      showToast(`${successCount} gambar berhasil dikompres & ditambahkan (kualitas A4 terjaga).`);
+      showToast(`${successCount} gambar berhasil dikompres & diunggah ke server.`);
     }
   }
 
@@ -589,14 +566,8 @@
 
     const dateFormatted = `${day} ${MONTHS_ID[month - 1]} ${year}`;
     const dateISO = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    const nowISO = new Date().toISOString();
 
-    const existing = state.editingReportId
-      ? state.reports.find((r) => r.id === state.editingReportId)
-      : null;
-
-    const reportObj = {
-      id: existing ? existing.id : `rpt-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    const payload = {
       dateDay: day,
       dateMonth: month,
       dateYear: year,
@@ -611,24 +582,31 @@
       instrument: [...state.selectedInstrument],
       planDesign: freeTextOrDash($('inputPlanDesign').value),
       rawDataFile: freeTextOrDash($('inputRawDataFile').value),
-      images: state.uploadedImages.map((img) => ({ ...img })),
-      createdBy: existing ? existing.createdBy : state.currentUser.id,
-      createdByName: existing ? existing.createdByName : state.currentUser.fullName,
-      createdAt: existing ? existing.createdAt : nowISO,
-      updatedAt: nowISO
+      images: state.uploadedImages.map((img) => ({ ...img }))
     };
 
-    await DB.put('reports', reportObj);
-    await loadAllData();
+    const submitBtn = $('btnSubmitReport');
+    submitBtn.disabled = true;
 
-    state.lastSubmittedReport = reportObj;
-    state.editingReportId = reportObj.id;
+    try {
+      const saved = state.editingReportId
+        ? await API.updateReport(state.editingReportId, payload)
+        : await API.createReport(payload);
 
-    $('submitSuccessInfo').textContent = `Laporan tanggal ${reportObj.dateFormatted} (${reportObj.area}) dengan ${reportObj.images.length} foto dokumentasi telah disimpan.`;
-    $('submitSuccessBox').classList.remove('hidden');
-    $('submitSuccessBox').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      await loadAllData();
+      state.lastSubmittedReport = saved;
+      state.editingReportId = saved.id;
 
-    showToast('Laporan berhasil disimpan! Silakan klik Cetak PDF.');
+      $('submitSuccessInfo').textContent = `Laporan tanggal ${saved.dateFormatted} (${saved.area}) dengan ${saved.images.length} foto dokumentasi telah disimpan di server.`;
+      $('submitSuccessBox').classList.remove('hidden');
+      $('submitSuccessBox').scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+      showToast('Laporan berhasil disimpan! Silakan klik Cetak PDF.');
+    } catch (err) {
+      showToast(err.message || 'Gagal menyimpan laporan.', true);
+    } finally {
+      submitBtn.disabled = false;
+    }
   }
 
   // ==================== PREVIEW & PRINT PDF ====================
@@ -692,7 +670,9 @@
     $('userModalTitle').textContent = user ? 'Edit User' : 'Tambah User Baru';
     $('userFullName').value = user ? user.fullName : '';
     $('userUsername').value = user ? user.username : '';
-    $('userPassword').value = user ? user.password : '';
+    $('userPassword').value = '';
+    $('userPassword').required = !user;
+    $('userPassword').placeholder = user ? 'Kosongkan jika tidak ingin mengubah password' : 'Masukkan password';
     $('userPosition').value = user ? (user.position || '') : '';
     $('userRole').value = user ? user.role : 'user';
     $('userModal').classList.remove('hidden');
@@ -706,79 +686,43 @@
 
   async function handleUserFormSubmit(e) {
     e.preventDefault();
-    const fullName = $('userFullName').value.trim();
-    const username = $('userUsername').value.trim();
-    const password = $('userPassword').value;
-    const position = $('userPosition').value.trim();
-    const role = $('userRole').value;
-
-    if (!fullName || !username || !password) {
-      showToast('Nama lengkap, username, dan password wajib diisi.', true);
-      return;
-    }
-
-    const duplicate = state.users.find(
-      (u) => u.username.toLowerCase() === username.toLowerCase() && u.id !== state.editingUserId
-    );
-    if (duplicate) {
-      showToast('Username sudah digunakan user lain.', true);
-      return;
-    }
-
-    const existing = state.editingUserId
-      ? state.users.find((u) => u.id === state.editingUserId)
-      : null;
-
-    // Cegah menurunkan role admin terakhir
-    if (existing && existing.role === 'admin' && role !== 'admin') {
-      const adminCount = state.users.filter((u) => u.role === 'admin').length;
-      if (adminCount <= 1) {
-        showToast('Harus ada minimal 1 akun Admin aktif.', true);
-        return;
-      }
-    }
-
-    const userObj = {
-      id: existing ? existing.id : `usr-${Date.now()}`,
-      fullName,
-      username,
-      password,
-      position,
-      role,
-      createdAt: existing ? existing.createdAt : new Date().toISOString()
+    const payload = {
+      fullName: $('userFullName').value.trim(),
+      username: $('userUsername').value.trim(),
+      password: $('userPassword').value,
+      position: $('userPosition').value.trim(),
+      role: $('userRole').value
     };
 
-    await DB.put('users', userObj);
-    await loadAllData();
-
-    // Update currentUser jika mengedit diri sendiri
-    if (state.currentUser.id === userObj.id) {
-      state.currentUser = userObj;
-      $('headerUserName').textContent = userObj.fullName;
+    try {
+      if (state.editingUserId) {
+        await API.updateUser(state.editingUserId, payload);
+      } else {
+        await API.createUser(payload);
+      }
+      await loadAllData();
+      $('headerUserName').textContent = state.currentUser.fullName;
+      closeUserModal();
+      renderAdminUsers();
+      showToast(state.editingUserId ? 'Data user berhasil diperbarui.' : 'User baru berhasil ditambahkan.');
+    } catch (err) {
+      showToast(err.message || 'Gagal menyimpan user.', true);
     }
-
-    closeUserModal();
-    renderAdminUsers();
-    showToast(existing ? 'Data user berhasil diperbarui.' : 'User baru berhasil ditambahkan.');
   }
 
   async function deleteUser(userId) {
     const user = state.users.find((u) => u.id === userId);
     if (!user) return;
-    if (user.id === state.currentUser.id) {
-      showToast('Anda tidak dapat menghapus akun yang sedang digunakan.', true);
-      return;
-    }
-    if (user.role === 'admin' && state.users.filter((u) => u.role === 'admin').length <= 1) {
-      showToast('Tidak dapat menghapus satu-satunya Admin.', true);
-      return;
-    }
     if (!confirm(`Hapus user "${user.fullName}" (${user.username})?`)) return;
 
-    await DB.remove('users', userId);
-    await loadAllData();
-    renderAdminUsers();
-    showToast('User berhasil dihapus.');
+    try {
+      await API.deleteUser(userId);
+      await loadAllData();
+      renderAdminUsers();
+      showToast('User berhasil dihapus.');
+    } catch (err) {
+      showToast(err.message || 'Gagal menghapus user.', true);
+    }
   }
 
   // ---- Master Dropdowns ----
@@ -829,12 +773,7 @@
   }
 
   async function saveDropdownList(key, newItems) {
-    const meta = DROPDOWN_META.find((m) => m.key === key);
-    await DB.put('dropdowns', {
-      key,
-      label: meta ? meta.title : key,
-      items: newItems
-    });
+    await API.saveDropdown(key, newItems);
     await loadAllData();
     renderAdminDropdowns();
   }
@@ -846,35 +785,43 @@
     $('previewLogoPdfRight').src = state.logos.pdfRight;
   }
 
-  function handleLogoUpload(settingKey, file) {
+  function handleLogoUpload(slot, file) {
     if (!file || !file.type.startsWith('image/')) {
       showToast('Silakan pilih file gambar (PNG/JPG/SVG).', true);
       return;
     }
     const reader = new FileReader();
     reader.onload = async () => {
-      await DB.put('settings', { key: settingKey, value: reader.result });
-      await loadAllData();
-      renderAdminLogos();
-      showToast('Logo berhasil diperbarui.');
+      try {
+        const res = await API.uploadLogo(slot, reader.result);
+        state.logos = res.logos;
+        applyLogosToUI();
+        renderAdminLogos();
+        showToast('Logo berhasil diperbarui di server.');
+      } catch (err) {
+        showToast(err.message || 'Gagal mengunggah logo.', true);
+      }
     };
     reader.readAsDataURL(file);
   }
 
-  async function resetLogoSetting(settingKey) {
-    await DB.remove('settings', settingKey);
-    await loadAllData();
-    renderAdminLogos();
-    showToast('Logo dikembalikan ke default.');
+  async function resetLogoSetting(slot) {
+    try {
+      const res = await API.resetLogo(slot);
+      state.logos = res.logos;
+      applyLogosToUI();
+      renderAdminLogos();
+      showToast('Logo dikembalikan ke default.');
+    } catch (err) {
+      showToast(err.message || 'Gagal mereset logo.', true);
+    }
   }
 
   // ==================== EVENT BINDINGS ====================
   function bindEvents() {
-    // Login & Logout
     $('loginForm').addEventListener('submit', handleLoginSubmit);
     $('btnLogout').addEventListener('click', handleLogout);
 
-    // Nav Tabs
     document.querySelectorAll('.nav-tab').forEach((btn) => {
       btn.addEventListener('click', () => {
         const target = btn.dataset.tab;
@@ -885,7 +832,6 @@
       });
     });
 
-    // Dashboard actions
     $('btnNewReportFromDash').addEventListener('click', () => {
       resetReportForm();
       switchTab('input');
@@ -917,17 +863,19 @@
         loadReportIntoForm(report);
       } else if (action === 'delete') {
         if (!confirm(`Hapus laporan tanggal ${report.dateFormatted} (${report.area})?`)) return;
-        await DB.remove('reports', id);
-        await loadAllData();
-        renderDashboard();
-        showToast('Laporan berhasil dihapus.');
+        try {
+          await API.deleteReport(id);
+          await loadAllData();
+          renderDashboard();
+          showToast('Laporan berhasil dihapus.');
+        } catch (err) {
+          showToast(err.message || 'Gagal menghapus laporan.', true);
+        }
       }
     });
 
-    // Input Form Events
     $('btnTodayDate').addEventListener('click', setDateDropdownToToday);
 
-    // Multi-select dropdown Man Power (auto add on select + button)
     $('selectManPower').addEventListener('change', (e) => {
       if (e.target.value) {
         addChipValue('manPower', e.target.value);
@@ -935,7 +883,6 @@
       }
     });
 
-    // Multi-select dropdown Instrument (auto add on select)
     $('selectInstrument').addEventListener('change', (e) => {
       if (e.target.value) {
         addChipValue('instrument', e.target.value);
@@ -943,7 +890,6 @@
       }
     });
 
-    // Remove chip clicks
     ['chipsManPower', 'chipsInstrument'].forEach((id) => {
       $(id).addEventListener('click', (e) => {
         const btn = e.target.closest('button[data-chip-type]');
@@ -952,7 +898,6 @@
       });
     });
 
-    // Photo Upload Dropzone
     const dropzone = $('photoDropzone');
     const fileInput = $('inputPhotoFiles');
 
@@ -970,7 +915,6 @@
       handleImageFiles(e.dataTransfer.files);
     });
 
-    // Photo Preview Actions (reorder & delete)
     $('photoPreviewGrid').addEventListener('click', (e) => {
       const btn = e.target.closest('button[data-img-act]');
       if (!btn) return;
@@ -992,7 +936,6 @@
       renderPhotoPreviews();
     });
 
-    // Submit & Reset Form
     $('reportForm').addEventListener('submit', handleReportSubmit);
     $('btnResetForm').addEventListener('click', () => {
       if (confirm('Kosongkan seluruh isian form?')) resetReportForm();
@@ -1002,7 +945,6 @@
       switchTab('dashboard');
     });
 
-    // Post-Submit Actions
     $('btnPrintSubmitted').addEventListener('click', () => triggerPrintPDF(state.lastSubmittedReport));
     $('btnPreviewSubmitted').addEventListener('click', () => {
       if (state.lastSubmittedReport) openPreviewModal(state.lastSubmittedReport);
@@ -1012,7 +954,6 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
-    // Preview Modal
     $('btnClosePreview').addEventListener('click', closePreviewModal);
     $('btnClosePreviewFooter').addEventListener('click', closePreviewModal);
     $('btnPrintFromPreview').addEventListener('click', () => triggerPrintPDF(state.previewReport));
@@ -1020,7 +961,6 @@
       if (e.target === $('previewModal')) closePreviewModal();
     });
 
-    // Admin Subtabs
     document.querySelectorAll('.admin-subtab').forEach((btn) => {
       btn.addEventListener('click', () => {
         state.adminSubTab = btn.dataset.subtab;
@@ -1028,7 +968,6 @@
       });
     });
 
-    // Admin Users
     $('btnAddUser').addEventListener('click', () => openUserModal(null));
     $('btnCloseUserModal').addEventListener('click', closeUserModal);
     $('btnCancelUserModal').addEventListener('click', closeUserModal);
@@ -1050,7 +989,6 @@
       }
     });
 
-    // Admin Master Dropdowns
     $('masterDropdownsGrid').addEventListener('click', async (e) => {
       const btn = e.target.closest('button[data-dd-act]');
       if (!btn) return;
@@ -1058,80 +996,82 @@
       const key = btn.dataset.ddKey;
       const items = [...(state.dropdowns[key] || [])];
 
-      if (act === 'add') {
-        const input = $(`add-dd-${key}`);
-        const val = (input.value || '').trim();
-        if (!val) {
-          showToast('Masukkan teks item terlebih dahulu.', true);
-          input.focus();
-          return;
+      try {
+        if (act === 'add') {
+          const input = $(`add-dd-${key}`);
+          const val = (input.value || '').trim();
+          if (!val) {
+            showToast('Masukkan teks item terlebih dahulu.', true);
+            input.focus();
+            return;
+          }
+          if (items.some((x) => x.toLowerCase() === val.toLowerCase())) {
+            showToast('Item tersebut sudah ada di daftar.', true);
+            return;
+          }
+          items.push(val);
+          await saveDropdownList(key, items);
+          showToast(`"${val}" berhasil ditambahkan.`);
+        } else if (act === 'edit') {
+          const idx = parseInt(btn.dataset.ddIdx, 10);
+          const currentVal = items[idx];
+          const updated = prompt('Edit item dropdown:', currentVal);
+          if (updated === null) return;
+          const trimmed = updated.trim();
+          if (!trimmed) {
+            showToast('Nama item tidak boleh kosong.', true);
+            return;
+          }
+          items[idx] = trimmed;
+          await saveDropdownList(key, items);
+          showToast('Item dropdown berhasil diperbarui.');
+        } else if (act === 'delete') {
+          const idx = parseInt(btn.dataset.ddIdx, 10);
+          const targetVal = items[idx];
+          if (!confirm(`Hapus "${targetVal}" dari daftar dropdown?`)) return;
+          items.splice(idx, 1);
+          await saveDropdownList(key, items);
+          showToast(`"${targetVal}" berhasil dihapus.`);
         }
-        if (items.some((x) => x.toLowerCase() === val.toLowerCase())) {
-          showToast('Item tersebut sudah ada di daftar.', true);
-          return;
-        }
-        items.push(val);
-        await saveDropdownList(key, items);
-        showToast(`"${val}" berhasil ditambahkan.`);
-      } else if (act === 'edit') {
-        const idx = parseInt(btn.dataset.ddIdx, 10);
-        const currentVal = items[idx];
-        const updated = prompt('Edit item dropdown:', currentVal);
-        if (updated === null) return;
-        const trimmed = updated.trim();
-        if (!trimmed) {
-          showToast('Nama item tidak boleh kosong.', true);
-          return;
-        }
-        items[idx] = trimmed;
-        await saveDropdownList(key, items);
-        showToast('Item dropdown berhasil diperbarui.');
-      } else if (act === 'delete') {
-        const idx = parseInt(btn.dataset.ddIdx, 10);
-        const targetVal = items[idx];
-        if (!confirm(`Hapus "${targetVal}" dari daftar dropdown?`)) return;
-        items.splice(idx, 1);
-        await saveDropdownList(key, items);
-        showToast(`"${targetVal}" berhasil dihapus.`);
+      } catch (err) {
+        showToast(err.message || 'Gagal memperbarui master dropdown.', true);
       }
     });
 
-    // Admin Logo Settings
     $('uploadLogoCompany').addEventListener('change', (e) => {
-      if (e.target.files[0]) handleLogoUpload('logo_company', e.target.files[0]);
+      if (e.target.files[0]) handleLogoUpload('company', e.target.files[0]);
       e.target.value = '';
     });
     $('uploadLogoPdfLeft').addEventListener('change', (e) => {
-      if (e.target.files[0]) handleLogoUpload('logo_pdf_left', e.target.files[0]);
+      if (e.target.files[0]) handleLogoUpload('pdfLeft', e.target.files[0]);
       e.target.value = '';
     });
     $('uploadLogoPdfRight').addEventListener('change', (e) => {
-      if (e.target.files[0]) handleLogoUpload('logo_pdf_right', e.target.files[0]);
+      if (e.target.files[0]) handleLogoUpload('pdfRight', e.target.files[0]);
       e.target.value = '';
     });
 
-    $('resetLogoCompany').addEventListener('click', () => resetLogoSetting('logo_company'));
-    $('resetLogoPdfLeft').addEventListener('click', () => resetLogoSetting('logo_pdf_left'));
-    $('resetLogoPdfRight').addEventListener('click', () => resetLogoSetting('logo_pdf_right'));
+    $('resetLogoCompany').addEventListener('click', () => resetLogoSetting('company'));
+    $('resetLogoPdfLeft').addEventListener('click', () => resetLogoSetting('pdfLeft'));
+    $('resetLogoPdfRight').addEventListener('click', () => resetLogoSetting('pdfRight'));
   }
 
   // ==================== INIT ====================
   async function bootstrap() {
-    try {
-      await DB.initSeed();
-      await loadAllData();
-      initDateDropdowns();
-      bindEvents();
+    initDateDropdowns();
+    bindEvents();
+    await loadPublicLogos();
 
-      if (restoreSession()) {
+    if (API.getToken()) {
+      try {
+        await loadAllData();
         showAppShell();
-      } else {
-        showLoginView();
+        return;
+      } catch (_) {
+        API.setToken('');
       }
-    } catch (err) {
-      console.error('Gagal inisialisasi aplikasi:', err);
-      alert('Gagal memuat database lokal browser: ' + err.message);
     }
+    showLoginView();
   }
 
   document.addEventListener('DOMContentLoaded', bootstrap);
