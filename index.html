@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Engineering Dept . PT Harapan Mitra Lestari — Daily Survey Activity Report</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- ================= LOGIN VIEW ================= -->
+  <section id="loginView" class="login-wrapper">
+    <div class="login-card">
+      <div class="login-banner">
+        <div class="login-logo-box">
+          <img id="loginCompanyLogo" src="assets/logo-hml.png" alt="Lambang PT Harapan Mitra Lestari" />
+        </div>
+        <h1>Engineering Dept . PT Harapan Mitra Lestari</h1>
+        <p>Sistem Input &amp; Cetak Laporan Tim Engineering</p>
+      </div>
+      <div class="login-body">
+        <div id="loginError" class="login-error hidden"></div>
+        <form id="loginForm" autocomplete="off">
+          <div class="form-group">
+            <label class="form-label" for="loginUsername">Username</label>
+            <input type="text" id="loginUsername" class="form-control" placeholder="Masukkan username" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="loginPassword">Password</label>
+            <input type="password" id="loginPassword" class="form-control" placeholder="Masukkan password" required />
+          </div>
+          <button type="submit" class="btn btn-orange btn-lg" style="width: 100%; margin-top: 6px;">
+            Masuk ke Sistem
+          </button>
+        </form>
+
+        <div class="login-hint">
+          <strong>Akun Default:</strong><br />
+          Admin: <code>admin</code> / <code>admin123</code><br />
+          User: <code>user</code> / <code>user123</code>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= MAIN APP SHELL ================= -->
+  <div id="appShell" class="hidden">
+    <!-- Top Header -->
+    <header class="app-header">
+      <div class="header-inner">
+        <div class="brand">
+          <div class="brand-logo">
+            <img id="headerCompanyLogo" src="assets/logo-hml.png" alt="Logo PT Harapan Mitra Lestari" />
+          </div>
+          <div>
+            <div class="brand-title">Engineering Dept . PT Harapan Mitra Lestari</div>
+            <div class="brand-subtitle">Daily Survey Activity &amp; Engineering Report System</div>
+          </div>
+        </div>
+
+        <div class="header-user">
+          <div class="user-pill">
+            <span id="headerUserName">-</span>
+            <span id="headerRoleBadge" class="role-badge">User</span>
+          </div>
+          <button type="button" id="btnLogout" class="btn btn-logout">Keluar</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="app-nav">
+      <div class="nav-inner">
+        <button type="button" class="nav-tab active" data-tab="dashboard">Dashboard Laporan</button>
+        <button type="button" class="nav-tab" data-tab="input">Input Laporan</button>
+        <button type="button" id="navAdminBtn" class="nav-tab hidden" data-tab="admin">Admin Panel</button>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="app-main">
+
+      <!-- ===== TAB 1: DASHBOARD LIST REPORT ===== -->
+      <section id="tabDashboard">
+        <div class="page-header">
+          <div>
+            <h2>Dashboard Laporan Engineering</h2>
+            <p>Daftar seluruh Daily Survey Activity yang telah dibuat dan siap dicetak ke PDF (A4).</p>
+          </div>
+          <button type="button" id="btnNewReportFromDash" class="btn btn-orange btn-lg">
+            + Input Laporan Baru
+          </button>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">Total Laporan</div>
+            <div class="stat-value" id="statTotalReports">0</div>
+          </div>
+          <div class="stat-card accent">
+            <div class="stat-label">Laporan Bulan Ini</div>
+            <div class="stat-value" id="statMonthReports">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Total Foto Dokumentasi</div>
+            <div class="stat-value" id="statTotalPhotos">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Area Tercatat</div>
+            <div class="stat-value" id="statActiveAreas">0</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3>Daftar Laporan</h3>
+          </div>
+          <div class="card-body">
+            <div class="filter-bar">
+              <input type="text" id="filterSearch" class="form-control" placeholder="Cari pekerjaan, area, man power, raw data..." />
+              <select id="filterArea" class="form-select">
+                <option value="">Semua Area</option>
+              </select>
+              <input type="date" id="filterDate" class="form-control" style="max-width: 190px;" />
+              <button type="button" id="btnResetFilters" class="btn btn-outline">Reset Filter</button>
+            </div>
+
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th style="width: 48px;">No</th>
+                    <th>Day / Date</th>
+                    <th>Area</th>
+                    <th>Job &amp; Raw Data</th>
+                    <th>Wheater &amp; Tim</th>
+                    <th>Foto</th>
+                    <th style="width: 280px;">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="reportTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== TAB 2: INPUT REPORT ===== -->
+      <section id="tabInput" class="hidden">
+        <div class="page-header">
+          <div>
+            <h2 id="formHeading">Input Laporan Harian Engineering</h2>
+            <p>Lengkapi data laporan di bawah ini. Field free text yang dikosongkan akan otomatis terisi tanda <code>"-"</code>.</p>
+          </div>
+          <div class="action-group">
+            <button type="button" id="btnCancelEdit" class="btn btn-outline hidden">Batal Edit</button>
+            <button type="button" id="btnResetForm" class="btn btn-outline">Reset Form</button>
+          </div>
+        </div>
+
+        <!-- Post-Submit Success Box -->
+        <div id="submitSuccessBox" class="submit-success-box hidden">
+          <div>
+            <h3>Laporan Berhasil Disimpan!</h3>
+            <p id="submitSuccessInfo"></p>
+          </div>
+          <div class="submit-success-actions">
+            <button type="button" id="btnPrintSubmitted" class="btn btn-orange btn-lg">Cetak PDF (A4)</button>
+            <button type="button" id="btnPreviewSubmitted" class="btn btn-primary">Preview A4</button>
+            <button type="button" id="btnCreateAnother" class="btn btn-outline">+ Buat Laporan Baru</button>
+          </div>
+        </div>
+
+        <form id="reportForm">
+          <!-- Card 1: Informasi Laporan -->
+          <div class="card">
+            <div class="card-header">
+              <h3>Data Daily Survey Activity</h3>
+            </div>
+            <div class="card-body">
+              <div class="form-grid">
+                <!-- Day / Date (Dropdown Tanggal) -->
+                <div class="form-group">
+                  <label class="form-label">
+                    Day / Date <span class="hint">Mode dropdown tanggal</span>
+                  </label>
+                  <div class="date-dropdown-row">
+                    <select id="inputDay" class="form-select" aria-label="Tanggal"></select>
+                    <select id="inputMonth" class="form-select" aria-label="Bulan"></select>
+                    <select id="inputYear" class="form-select" aria-label="Tahun"></select>
+                    <button type="button" id="btnTodayDate" class="btn btn-outline btn-sm">Hari Ini</button>
+                  </div>
+                </div>
+
+                <!-- Area (Dropdown) -->
+                <div class="form-group">
+                  <label class="form-label" for="inputArea">
+                    Area <span class="hint">Dropdown (dikelola Admin)</span>
+                  </label>
+                  <select id="inputArea" class="form-select" required></select>
+                </div>
+
+                <!-- Wheater (Dropdown) -->
+                <div class="form-group">
+                  <label class="form-label" for="inputWheater">
+                    Wheater <span class="hint">Dropdown (dikelola Admin)</span>
+                  </label>
+                  <select id="inputWheater" class="form-select" required></select>
+                </div>
+
+                <!-- Plan Design (Free text) -->
+                <div class="form-group">
+                  <label class="form-label" for="inputPlanDesign">
+                    Plan Design <span class="hint">Kosong = "-"</span>
+                  </label>
+                  <input type="text" id="inputPlanDesign" class="form-control" placeholder="Contoh: DESIGN SEGMENT C2.dxf" />
+                </div>
+
+                <!-- Raw Data File (Free text) -->
+                <div class="form-group">
+                  <label class="form-label" for="inputRawDataFile">
+                    Raw Data File <span class="hint">Kosong = "-"</span>
+                  </label>
+                  <input type="text" id="inputRawDataFile" class="form-control" placeholder="Contoh: 261124_ST_HML" />
+                </div>
+
+                <!-- Man Power (Multi-select Dropdown) -->
+                <div class="form-group">
+                  <label class="form-label" for="selectManPower">
+                    Man Power <span class="hint">Pilih satu atau lebih dari dropdown</span>
+                  </label>
+                  <div class="multi-select-box">
+                    <select id="selectManPower" class="form-select"></select>
+                    <div id="chipsManPower" class="chips-container"></div>
+                  </div>
+                </div>
+
+                <!-- Instrument (Multi-select Dropdown) -->
+                <div class="form-group full-width">
+                  <label class="form-label" for="selectInstrument">
+                    Instrument <span class="hint">Pilih satu atau lebih dari dropdown</span>
+                  </label>
+                  <div class="multi-select-box">
+                    <select id="selectInstrument" class="form-select"></select>
+                    <div id="chipsInstrument" class="chips-container"></div>
+                  </div>
+                </div>
+
+                <!-- Job (Free text) -->
+                <div class="form-group full-width">
+                  <label class="form-label" for="inputJob">
+                    Job <span class="hint">Free text (bila kosong, otomatis "-")</span>
+                  </label>
+                  <textarea id="inputJob" class="form-textarea" rows="4" placeholder="1. Situasi jalan sta ...&#10;2. Pemasangan ..."></textarea>
+                </div>
+
+                <!-- Safety Issue (Free text) -->
+                <div class="form-group">
+                  <label class="form-label" for="inputSafetyIssue">
+                    Safety Issue <span class="hint">Free text (bila kosong, otomatis "-")</span>
+                  </label>
+                  <textarea id="inputSafetyIssue" class="form-textarea" rows="3" placeholder="Isi catatan safety issue atau biarkan kosong"></textarea>
+                </div>
+
+                <!-- Plan Tomorrow (Free text) -->
+                <div class="form-group">
+                  <label class="form-label" for="inputPlanTomorrow">
+                    Plan Tomorrow <span class="hint">Free text (bila kosong, otomatis "-")</span>
+                  </label>
+                  <textarea id="inputPlanTomorrow" class="form-textarea" rows="3" placeholder="Isi rencana kerja besok atau biarkan kosong"></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2: Upload Gambar Dokumentasi (Unlimited + Smart A4 Compress) -->
+          <div class="card">
+            <div class="card-header">
+              <h3>Upload Foto Dokumentasi</h3>
+              <span id="photoCountBadge" class="badge-orange">0 Foto</span>
+            </div>
+            <div class="card-body">
+              <div id="photoDropzone" class="upload-dropzone">
+                <h4>Klik atau Seret &amp; Lepas Foto Dokumentasi di Sini</h4>
+                <p>Tidak ada batasan jumlah gambar &bull; Kompresi otomatis (max 1600px, kualitas tinggi untuk cetak A4)</p>
+                <div id="uploadProgress" class="upload-progress hidden"></div>
+              </div>
+              <input type="file" id="inputPhotoFiles" accept="image/*" multiple class="hidden" />
+              <div id="photoPreviewGrid" class="photo-preview-grid"></div>
+            </div>
+          </div>
+
+          <!-- Submit Bar -->
+          <div style="display: flex; justify-content: flex-end; gap: 12px; flex-wrap: wrap;">
+            <button type="submit" id="btnSubmitReport" class="btn btn-orange btn-lg">
+              Submit Laporan
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <!-- ===== TAB 3: ADMIN PANEL ===== -->
+      <section id="tabAdmin" class="hidden">
+        <div class="page-header">
+          <div>
+            <h2>Admin Panel</h2>
+            <p>Kelola akun pengguna, data master dropdown laporan, dan pengaturan logo.</p>
+          </div>
+        </div>
+
+        <div class="admin-subtabs">
+          <button type="button" class="admin-subtab active" data-subtab="users">Manajemen User</button>
+          <button type="button" class="admin-subtab" data-subtab="dropdowns">Master Data Dropdown</button>
+          <button type="button" class="admin-subtab" data-subtab="logos">Pengaturan Logo</button>
+        </div>
+
+        <!-- Subtab 1: Users -->
+        <div id="adminUsersSection" class="card">
+          <div class="card-header">
+            <h3>Daftar User</h3>
+            <button type="button" id="btnAddUser" class="btn btn-orange btn-sm">+ Tambah User</button>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th style="width: 48px;">No</th>
+                    <th>Nama Lengkap</th>
+                    <th>Username</th>
+                    <th>Jabatan</th>
+                    <th>Role</th>
+                    <th style="width: 160px;">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="adminUsersTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Subtab 2: Master Dropdowns -->
+        <div id="adminDropdownsSection" class="hidden">
+          <div id="masterDropdownsGrid" class="master-grid"></div>
+        </div>
+
+        <!-- Subtab 3: Logo Settings -->
+        <div id="adminLogosSection" class="hidden">
+          <div class="logo-settings-grid">
+            <div class="card">
+              <div class="card-header">
+                <h3>Logo PT Harapan Mitra Lestari</h3>
+              </div>
+              <div class="card-body">
+                <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 10px;">
+                  Ditampilkan di Box Login dan Header Aplikasi.
+                </p>
+                <div class="logo-preview-box">
+                  <img id="previewLogoCompany" src="assets/logo-hml.png" alt="Logo HML" />
+                </div>
+                <div class="action-group">
+                  <label class="btn btn-primary btn-sm" style="cursor:pointer;">
+                    Ganti Logo
+                    <input type="file" id="uploadLogoCompany" accept="image/*" class="hidden" />
+                  </label>
+                  <button type="button" id="resetLogoCompany" class="btn btn-outline btn-sm">Reset Default</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h3>Logo Kiri PDF (DBK)</h3>
+              </div>
+              <div class="card-body">
+                <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 10px;">
+                  Ditampilkan di sudut kiri atas hasil cetak PDF.
+                </p>
+                <div class="logo-preview-box">
+                  <img id="previewLogoPdfLeft" src="assets/logo-dbk.jpeg" alt="Logo Kiri PDF" />
+                </div>
+                <div class="action-group">
+                  <label class="btn btn-primary btn-sm" style="cursor:pointer;">
+                    Ganti Logo
+                    <input type="file" id="uploadLogoPdfLeft" accept="image/*" class="hidden" />
+                  </label>
+                  <button type="button" id="resetLogoPdfLeft" class="btn btn-outline btn-sm">Reset Default</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h3>Logo Kanan PDF (PETROSEA)</h3>
+              </div>
+              <div class="card-body">
+                <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 10px;">
+                  Ditampilkan di sudut kanan atas hasil cetak PDF.
+                </p>
+                <div class="logo-preview-box">
+                  <img id="previewLogoPdfRight" src="assets/logo-petrosea.jpeg" alt="Logo Kanan PDF" />
+                </div>
+                <div class="action-group">
+                  <label class="btn btn-primary btn-sm" style="cursor:pointer;">
+                    Ganti Logo
+                    <input type="file" id="uploadLogoPdfRight" accept="image/*" class="hidden" />
+                  </label>
+                  <button type="button" id="resetLogoPdfRight" class="btn btn-outline btn-sm">Reset Default</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ================= MODAL: PREVIEW A4 & CETAK PDF ================= -->
+  <div id="previewModal" class="modal-backdrop hidden">
+    <div class="modal-dialog modal-a4">
+      <div class="modal-header">
+        <h3 id="previewModalTitle">Preview Cetak A4</h3>
+        <button type="button" id="btnClosePreview" class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body preview-canvas">
+        <div id="previewSheetContainer"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="btnClosePreviewFooter" class="btn btn-outline">Tutup</button>
+        <button type="button" id="btnPrintFromPreview" class="btn btn-orange">Cetak / Simpan PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: ADD / EDIT USER ================= -->
+  <div id="userModal" class="modal-backdrop hidden">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="userModalTitle">Tambah User Baru</h3>
+        <button type="button" id="btnCloseUserModal" class="modal-close">&times;</button>
+      </div>
+      <form id="userForm" autocomplete="off">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="userFullName">Nama Lengkap</label>
+            <input type="text" id="userFullName" class="form-control" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="userUsername">Username</label>
+            <input type="text" id="userUsername" class="form-control" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="userPassword">Password</label>
+            <input type="text" id="userPassword" class="form-control" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="userPosition">Jabatan / Posisi</label>
+            <input type="text" id="userPosition" class="form-control" placeholder="Contoh: Surveyor Engineering" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="userRole">Role</label>
+            <select id="userRole" class="form-select">
+              <option value="user">User (Input &amp; Dashboard Laporan)</option>
+              <option value="admin">Admin (Semua Fitur + Admin Panel)</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="btnCancelUserModal" class="btn btn-outline">Batal</button>
+          <button type="submit" class="btn btn-orange">Simpan User</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= DEDICATED PRINT AREA (A4 PDF) ================= -->
+  <div id="printArea"></div>
+
+  <!-- ================= TOAST NOTIFICATIONS ================= -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="js/db.js"></script>
+  <script src="js/imageCompressor.js"></script>
+  <script src="js/pdfPrint.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
