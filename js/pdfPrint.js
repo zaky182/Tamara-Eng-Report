@@ -86,11 +86,11 @@ const ReportPrinter = (() => {
             <tbody>
               <tr>
                 <td class="col-label">Day / Date</td>
-                <td class="col-value">: ${escapeHtml(report.dateFormatted || '-')}</td>
+                <td class="col-value">${escapeHtml(report.dateFormatted || '-')}</td>
               </tr>
               <tr>
                 <td class="col-label">Area</td>
-                <td class="col-value">: ${escapeHtml(valueOrDash(report.area))}</td>
+                <td class="col-value">${escapeHtml(valueOrDash(report.area))}</td>
               </tr>
               <tr>
                 <td class="col-label">Job</td>

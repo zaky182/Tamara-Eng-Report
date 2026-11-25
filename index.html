@@ -10,31 +10,34 @@
 
   <!-- ================= LOGIN VIEW ================= -->
   <section id="loginView" class="login-wrapper">
-    <div class="login-card">
-      <div class="login-banner">
-        <div class="login-logo-box">
-          <img id="loginCompanyLogo" src="assets/logo-hml.png" alt="Lambang PT Harapan Mitra Lestari" />
+    <div class="login-container">
+      <div class="login-card">
+        <div class="login-banner">
+          <div class="login-logo-box">
+            <img id="loginCompanyLogo" src="assets/logo-hml.png" alt="Lambang PT Harapan Mitra Lestari" />
+          </div>
+          <h1>Engineering Dept</h1>
+          <div class="login-company-name">PT Harapan Mitra Lestari</div>
+          <p>Daily Survey Activity</p>
         </div>
-        <h1>Engineering Dept</h1>
-        <div class="login-company-name">PT Harapan Mitra Lestari</div>
-        <p>Daily Survey Activity</p>
+        <div class="login-body">
+          <div id="loginError" class="login-error hidden"></div>
+          <form id="loginForm" autocomplete="off">
+            <div class="form-group">
+              <label class="form-label" for="loginUsername">Username</label>
+              <input type="text" id="loginUsername" class="form-control" placeholder="Masukkan username" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="loginPassword">Password</label>
+              <input type="password" id="loginPassword" class="form-control" placeholder="Masukkan password" required />
+            </div>
+            <button type="submit" class="btn btn-orange btn-lg" style="width: 100%; margin-top: 6px;">
+              Masuk ke Sistem
+            </button>
+          </form>
+        </div>
       </div>
-      <div class="login-body">
-        <div id="loginError" class="login-error hidden"></div>
-        <form id="loginForm" autocomplete="off">
-          <div class="form-group">
-            <label class="form-label" for="loginUsername">Username</label>
-            <input type="text" id="loginUsername" class="form-control" placeholder="Masukkan username" required />
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="loginPassword">Password</label>
-            <input type="password" id="loginPassword" class="form-control" placeholder="Masukkan password" required />
-          </div>
-          <button type="submit" class="btn btn-orange btn-lg" style="width: 100%; margin-top: 6px;">
-            Masuk ke Sistem
-          </button>
-        </form>
-      </div>
+      <div class="login-copyright">&copy; 2026 Tamara's Labs &middot; All Rights Reserved</div>
     </div>
   </section>
 
@@ -282,6 +285,9 @@
 
           <!-- Submit Bar -->
           <div style="display: flex; justify-content: flex-end; gap: 12px; flex-wrap: wrap;">
+            <button type="button" id="btnPreviewDraft" class="btn btn-primary btn-lg">
+              Preview
+            </button>
             <button type="submit" id="btnSubmitReport" class="btn btn-orange btn-lg">
               Submit Laporan
             </button>

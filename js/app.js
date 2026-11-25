@@ -510,6 +510,40 @@
     return trimmed === '' ? '-' : trimmed;
   }
 
+  function buildFormPayload() {
+    const dateVal = ($('inputDate').value || '').trim();
+    let year = new Date().getFullYear();
+    let month = new Date().getMonth() + 1;
+    let day = new Date().getDate();
+    if (dateVal) {
+      const [yearStr, monthStr, dayStr] = dateVal.split('-');
+      year = parseInt(yearStr, 10) || year;
+      month = parseInt(monthStr, 10) || month;
+      day = parseInt(dayStr, 10) || day;
+    }
+
+    const dateFormatted = `${day} ${MONTHS_ID[month - 1]} ${year}`;
+    const dateISO = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+    return {
+      dateDay: day,
+      dateMonth: month,
+      dateYear: year,
+      dateFormatted,
+      dateISO,
+      area: $('inputArea').value.trim(),
+      job: freeTextOrDash($('inputJob').value),
+      wheater: $('inputWheater').value.trim(),
+      manPower: [...state.selectedManPower],
+      safetyIssue: freeTextOrDash($('inputSafetyIssue').value),
+      planTomorrow: freeTextOrDash($('inputPlanTomorrow').value),
+      instrument: [...state.selectedInstrument],
+      planDesign: freeTextOrDash($('inputPlanDesign').value),
+      rawDataFile: freeTextOrDash($('inputRawDataFile').value),
+      images: state.uploadedImages.map((img) => ({ ...img }))
+    };
+  }
+
   async function handleReportSubmit(e) {
     e.preventDefault();
 
@@ -520,44 +554,18 @@
       return;
     }
 
-    const [yearStr, monthStr, dayStr] = dateVal.split('-');
-    const year = parseInt(yearStr, 10);
-    const month = parseInt(monthStr, 10);
-    const day = parseInt(dayStr, 10);
-    const area = $('inputArea').value.trim();
-    const wheater = $('inputWheater').value.trim();
+    const payload = buildFormPayload();
 
-    if (!area) {
+    if (!payload.area) {
       showToast('Silakan pilih Area terlebih dahulu.', true);
       $('inputArea').focus();
       return;
     }
-    if (!wheater) {
+    if (!payload.wheater) {
       showToast('Silakan pilih Wheater (Cuaca) terlebih dahulu.', true);
       $('inputWheater').focus();
       return;
     }
-
-    const dateFormatted = `${day} ${MONTHS_ID[month - 1]} ${year}`;
-    const dateISO = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-
-    const payload = {
-      dateDay: day,
-      dateMonth: month,
-      dateYear: year,
-      dateFormatted,
-      dateISO,
-      area,
-      job: freeTextOrDash($('inputJob').value),
-      wheater,
-      manPower: [...state.selectedManPower],
-      safetyIssue: freeTextOrDash($('inputSafetyIssue').value),
-      planTomorrow: freeTextOrDash($('inputPlanTomorrow').value),
-      instrument: [...state.selectedInstrument],
-      planDesign: freeTextOrDash($('inputPlanDesign').value),
-      rawDataFile: freeTextOrDash($('inputRawDataFile').value),
-      images: state.uploadedImages.map((img) => ({ ...img }))
-    };
 
     const submitBtn = $('btnSubmitReport');
     submitBtn.disabled = true;
@@ -908,6 +916,10 @@
       renderPhotoPreviews();
     });
 
+    $('btnPreviewDraft').addEventListener('click', () => {
+      const draft = buildFormPayload();
+      openPreviewModal(draft);
+    });
     $('reportForm').addEventListener('submit', handleReportSubmit);
     $('btnResetForm').addEventListener('click', () => {
       if (confirm('Kosongkan seluruh isian form?')) resetReportForm();
