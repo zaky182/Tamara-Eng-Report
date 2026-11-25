@@ -15,8 +15,9 @@
         <div class="login-logo-box">
           <img id="loginCompanyLogo" src="assets/logo-hml.png" alt="Lambang PT Harapan Mitra Lestari" />
         </div>
-        <h1>Engineering Dept . PT Harapan Mitra Lestari</h1>
-        <p>Sistem Input &amp; Cetak Laporan Tim Engineering</p>
+        <h1>Engineering Dept</h1>
+        <div class="login-company-name">PT Harapan Mitra Lestari</div>
+        <p>Daily Survey Activity</p>
       </div>
       <div class="login-body">
         <div id="loginError" class="login-error hidden"></div>
@@ -33,12 +34,6 @@
             Masuk ke Sistem
           </button>
         </form>
-
-        <div class="login-hint">
-          <strong>Akun Default:</strong><br />
-          Admin: <code>admin</code> / <code>admin123</code><br />
-          User: <code>user</code> / <code>user123</code>
-        </div>
       </div>
     </div>
   </section>
@@ -179,17 +174,12 @@
             </div>
             <div class="card-body">
               <div class="form-grid">
-                <!-- Day / Date (Dropdown Tanggal) -->
+                <!-- Day / Date -->
                 <div class="form-group">
-                  <label class="form-label">
-                    Day / Date <span class="hint">Mode dropdown tanggal</span>
+                  <label class="form-label" for="inputDate">
+                    Day / Date <span class="hint">Pilih tanggal</span>
                   </label>
-                  <div class="date-dropdown-row">
-                    <select id="inputDay" class="form-select" aria-label="Tanggal"></select>
-                    <select id="inputMonth" class="form-select" aria-label="Bulan"></select>
-                    <select id="inputYear" class="form-select" aria-label="Tahun"></select>
-                    <button type="button" id="btnTodayDate" class="btn btn-outline btn-sm">Hari Ini</button>
-                  </div>
+                  <input type="date" id="inputDate" class="form-control" required />
                 </div>
 
                 <!-- Area (Dropdown) -->

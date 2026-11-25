@@ -206,15 +206,26 @@ html, body {
 }
 
 .login-banner h1 {
-  font-size: 1.15rem;
-  font-weight: 700;
-  letter-spacing: 0.2px;
-  margin-bottom: 4px;
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  margin-bottom: 2px;
+  line-height: 1.25;
+}
+
+.login-company-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #e0f0ff;
+  margin-bottom: 6px;
+  line-height: 1.3;
 }
 
 .login-banner p {
-  font-size: 0.84rem;
-  color: #cfe4ff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fed7aa;
+  letter-spacing: 0.4px;
 }
 
 .login-body {
@@ -1131,6 +1142,11 @@ html, body {
   background: #ffffff;
 }
 
+.report-table-block {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
 .report-doc-title {
   text-align: center;
   font-family: 'Calibri', 'Segoe UI', Arial, sans-serif;
@@ -1140,6 +1156,8 @@ html, body {
   text-transform: uppercase;
   margin: 10px 0 8px;
   color: #000000;
+  break-after: avoid;
+  page-break-after: avoid;
 }
 
 /* Report Details Table */

@@ -79,59 +79,61 @@ const ReportPrinter = (() => {
 
         ${renderPhotosSection(report.images)}
 
-        <div class="report-doc-title">DAILY SURVEY ACTIVITY</div>
+        <div class="report-table-block">
+          <div class="report-doc-title">DAILY SURVEY ACTIVITY</div>
 
-        <table class="report-info-table">
-          <tbody>
-            <tr>
-              <td class="col-label">Day / Date</td>
-              <td class="col-value">: ${escapeHtml(report.dateFormatted || '-')}</td>
-            </tr>
-            <tr>
-              <td class="col-label">Area</td>
-              <td class="col-value">: ${escapeHtml(valueOrDash(report.area))}</td>
-            </tr>
-            <tr>
-              <td class="col-label">Job</td>
-              <td class="col-value"><div class="multiline-text">${escapeHtml(jobText)}</div></td>
-            </tr>
-            <tr>
-              <td class="col-label">Wheater</td>
-              <td class="col-value">
-                <table class="weather-inline-table">
-                  <tr>
-                    <td class="weather-check-cell">&radic;</td>
-                    <td>${escapeHtml(wheaterText)}</td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-            <tr>
-              <td class="col-label">Man Power</td>
-              <td class="col-value">${renderBulletOrDash(report.manPower)}</td>
-            </tr>
-            <tr>
-              <td class="col-label">Safety Issue</td>
-              <td class="col-value"><div class="multiline-text">${escapeHtml(safetyText)}</div></td>
-            </tr>
-            <tr>
-              <td class="col-label">Plan Tomorrow</td>
-              <td class="col-value"><div class="multiline-text">${escapeHtml(planTomorrowText)}</div></td>
-            </tr>
-            <tr>
-              <td class="col-label">Instrument</td>
-              <td class="col-value">${renderBulletOrDash(report.instrument)}</td>
-            </tr>
-            <tr>
-              <td class="col-label">Plan Design</td>
-              <td class="col-value"><div class="multiline-text">${escapeHtml(planDesignText)}</div></td>
-            </tr>
-            <tr>
-              <td class="col-label">Raw Data File</td>
-              <td class="col-value"><div class="multiline-text">${escapeHtml(rawDataText)}</div></td>
-            </tr>
-          </tbody>
-        </table>
+          <table class="report-info-table">
+            <tbody>
+              <tr>
+                <td class="col-label">Day / Date</td>
+                <td class="col-value">: ${escapeHtml(report.dateFormatted || '-')}</td>
+              </tr>
+              <tr>
+                <td class="col-label">Area</td>
+                <td class="col-value">: ${escapeHtml(valueOrDash(report.area))}</td>
+              </tr>
+              <tr>
+                <td class="col-label">Job</td>
+                <td class="col-value"><div class="multiline-text">${escapeHtml(jobText)}</div></td>
+              </tr>
+              <tr>
+                <td class="col-label">Wheater</td>
+                <td class="col-value">
+                  <table class="weather-inline-table">
+                    <tr>
+                      <td class="weather-check-cell">&radic;</td>
+                      <td>${escapeHtml(wheaterText)}</td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+              <tr>
+                <td class="col-label">Man Power</td>
+                <td class="col-value">${renderBulletOrDash(report.manPower)}</td>
+              </tr>
+              <tr>
+                <td class="col-label">Safety Issue</td>
+                <td class="col-value"><div class="multiline-text">${escapeHtml(safetyText)}</div></td>
+              </tr>
+              <tr>
+                <td class="col-label">Plan Tomorrow</td>
+                <td class="col-value"><div class="multiline-text">${escapeHtml(planTomorrowText)}</div></td>
+              </tr>
+              <tr>
+                <td class="col-label">Instrument</td>
+                <td class="col-value">${renderBulletOrDash(report.instrument)}</td>
+              </tr>
+              <tr>
+                <td class="col-label">Plan Design</td>
+                <td class="col-value"><div class="multiline-text">${escapeHtml(planDesignText)}</div></td>
+              </tr>
+              <tr>
+                <td class="col-label">Raw Data File</td>
+                <td class="col-value"><div class="multiline-text">${escapeHtml(rawDataText)}</div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     `;
   }

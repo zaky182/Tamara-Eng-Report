@@ -270,58 +270,24 @@
       .join('');
   }
 
-  // ==================== DATE DROPDOWN HELPERS ====================
+  // ==================== DATE INPUT HELPERS ====================
   function initDateDropdowns() {
-    const monthSelect = $('inputMonth');
-    const yearSelect = $('inputYear');
-
-    monthSelect.innerHTML = MONTHS_ID.map(
-      (name, idx) => `<option value="${idx + 1}">${name}</option>`
-    ).join('');
-
-    const currentYear = new Date().getFullYear();
-    const startYear = Math.min(2020, currentYear - 5);
-    const endYear = Math.max(2035, currentYear + 5);
-    let yearOpts = '';
-    for (let y = startYear; y <= endYear; y++) {
-      yearOpts += `<option value="${y}">${y}</option>`;
-    }
-    yearSelect.innerHTML = yearOpts;
-
-    monthSelect.addEventListener('change', syncDaysInMonth);
-    yearSelect.addEventListener('change', syncDaysInMonth);
-
     setDateDropdownToToday();
-  }
-
-  function syncDaysInMonth() {
-    const daySelect = $('inputDay');
-    const month = parseInt($('inputMonth').value, 10) || 1;
-    const year = parseInt($('inputYear').value, 10) || new Date().getFullYear();
-    const prevDay = parseInt(daySelect.value, 10) || 1;
-
-    const daysCount = new Date(year, month, 0).getDate();
-    let opts = '';
-    for (let d = 1; d <= daysCount; d++) {
-      opts += `<option value="${d}">${String(d).padStart(2, '0')}</option>`;
-    }
-    daySelect.innerHTML = opts;
-    daySelect.value = String(Math.min(prevDay, daysCount));
   }
 
   function setDateDropdownToToday() {
     const now = new Date();
-    $('inputYear').value = String(now.getFullYear());
-    $('inputMonth').value = String(now.getMonth() + 1);
-    syncDaysInMonth();
-    $('inputDay').value = String(now.getDate());
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    $('inputDate').value = `${y}-${m}-${d}`;
   }
 
   function setDateDropdownValues(day, month, year) {
-    $('inputYear').value = String(year);
-    $('inputMonth').value = String(month);
-    syncDaysInMonth();
-    $('inputDay').value = String(day);
+    const y = String(year || new Date().getFullYear());
+    const m = String(month || 1).padStart(2, '0');
+    const d = String(day || 1).padStart(2, '0');
+    $('inputDate').value = `${y}-${m}-${d}`;
   }
 
   // ==================== INPUT REPORT FORM ====================
@@ -547,9 +513,17 @@
   async function handleReportSubmit(e) {
     e.preventDefault();
 
-    const day = parseInt($('inputDay').value, 10);
-    const month = parseInt($('inputMonth').value, 10);
-    const year = parseInt($('inputYear').value, 10);
+    const dateVal = ($('inputDate').value || '').trim();
+    if (!dateVal) {
+      showToast('Silakan pilih tanggal laporan terlebih dahulu.', true);
+      $('inputDate').focus();
+      return;
+    }
+
+    const [yearStr, monthStr, dayStr] = dateVal.split('-');
+    const year = parseInt(yearStr, 10);
+    const month = parseInt(monthStr, 10);
+    const day = parseInt(dayStr, 10);
     const area = $('inputArea').value.trim();
     const wheater = $('inputWheater').value.trim();
 
@@ -873,8 +847,6 @@
         }
       }
     });
-
-    $('btnTodayDate').addEventListener('click', setDateDropdownToToday);
 
     $('selectManPower').addEventListener('change', (e) => {
       if (e.target.value) {
