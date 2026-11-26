@@ -198,13 +198,35 @@ const ReportPrinter = (() => {
     };
   }
 
+  function sanitizeForPdf(text) {
+    if (text === null || text === undefined) return '-';
+    let str = String(text);
+    // Ubah huruf bergaya Unicode (Mathematical Bold/Italic/Serif hasil copy-paste WA/HP) ke huruf Latin normal
+    if (typeof str.normalize === 'function') {
+      str = str.normalize('NFKC');
+    }
+    str = str
+      .replace(/[\u200B-\u200F\u202A-\u202E\uFEFF]/g, '') // zero-width & directional marks
+      .replace(/\u00A0/g, ' ')                            // non-breaking space
+      .replace(/[\u2018\u2019\u201A\u201B]/g, "'")        // smart single quotes
+      .replace(/[\u201C\u201D\u201E\u201F]/g, '"')        // smart double quotes
+      .replace(/[\u2013\u2014\u2015\u2212]/g, '-')        // en/em/minus dashes
+      .replace(/\u2026/g, '...')                          // ellipsis
+      .replace(/[\u25CF\u25CB\u25AA\u25AB\u2023\u2043]/g, '\u2022'); // bullet variants -> standard bullet
+
+    // Pertahankan hanya karakter yang didukung WinAnsi/Helvetica jsPDF (ASCII, Latin-1, dan bullet •)
+    str = str.replace(/[^\x09\x0A\x0D\x20-\x7E\xA0-\xFF\u2022]/g, '');
+    return str;
+  }
+
   function formatListForPdf(items) {
     if (!Array.isArray(items) || items.length === 0) return ['-'];
-    return items.map((item) => `•  ${String(item)}`);
+    return items.map((item) => `\u2022  ${sanitizeForPdf(item)}`);
   }
 
   function splitMultiline(doc, text, maxWidth) {
-    const rawLines = String(text || '-').split(/\r?\n/);
+    const cleanText = sanitizeForPdf(text || '-');
+    const rawLines = cleanText.split(/\r?\n/);
     const out = [];
     rawLines.forEach((line) => {
       const wrapped = doc.splitTextToSize(line === '' ? ' ' : line, maxWidth);
@@ -321,7 +343,7 @@ const ReportPrinter = (() => {
       { label: 'Day / Date', type: 'text', lines: splitMultiline(doc, report.dateFormatted || '-', valColW - cellPadX * 2) },
       { label: 'Area', type: 'text', lines: splitMultiline(doc, valueOrDash(report.area), valColW - cellPadX * 2) },
       { label: 'Job', type: 'text', lines: splitMultiline(doc, valueOrDash(report.job), valColW - cellPadX * 2) },
-      { label: 'Wheater', type: 'wheater', text: valueOrDash(report.wheater), lines: [valueOrDash(report.wheater)] },
+      { label: 'Wheater', type: 'wheater', text: sanitizeForPdf(valueOrDash(report.wheater)), lines: [sanitizeForPdf(valueOrDash(report.wheater))] },
       { label: 'Man Power', type: 'text', lines: splitMultiline(doc, formatListForPdf(report.manPower).join('\n'), valColW - cellPadX * 2) },
       { label: 'Safety Issue', type: 'text', lines: splitMultiline(doc, valueOrDash(report.safetyIssue), valColW - cellPadX * 2) },
       { label: 'Plan Tomorrow', type: 'text', lines: splitMultiline(doc, valueOrDash(report.planTomorrow), valColW - cellPadX * 2) },
